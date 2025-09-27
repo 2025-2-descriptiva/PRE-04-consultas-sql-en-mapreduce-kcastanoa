@@ -183,6 +183,42 @@ def run():
         output_folder="files/query_5",
     )        
 
+def run():
+    """Orquestador"""
+    import os, shutil
+
+    # 0) Estructura base y limpieza mínima
+    os.makedirs("files", exist_ok=True)
+    os.makedirs("files/output", exist_ok=True)  # <- evita el fallo al primer hadoop
+
+    # Si ya corriste antes, borra las carpetas de queries para evitar FileExistsError
+    for d in [f"files/query_{i}" for i in range(1, 6)]:
+        if os.path.exists(d):
+            shutil.rmtree(d)
+
+    # Aux: ejecutar una query y copiar su part-00000 al directorio de la query
+    def run_query(mapper, reducer, out_dir):
+        hadoop(
+            mapper_fn=mapper,
+            reducer_fn=reducer,
+            input_folder="files/input/",
+            output_folder=out_dir,      # crea out_dir y _SUCCESS ahí
+        )
+        # copiar el resultado generado (siempre cae en files/output/part-00000)
+        src = "files/output/part-00000"
+        dst = os.path.join(out_dir, "part-00000")
+        if os.path.exists(src):
+            shutil.copy(src, dst)
+        else:
+            raise Exception("No se generó files/output/part-00000; revisa mapper/reducer.")
+
+    # 1) Ejecutar consultas
+    run_query(mapper_query_1, reducer_query_1, "files/query_1")
+    run_query(mapper_query_2, reducer_query_2, "files/query_2")
+    run_query(mapper_query_3, reducer_query_3, "files/query_3")
+    run_query(mapper_query_4, reducer_query_4, "files/query_4")
+    run_query(mapper_query_5, reducer_query_5, "files/query_5")
+
 
 if __name__ == "__main__":
 
